@@ -1,0 +1,12 @@
+--- docker-compose.yml	2020-07-11 00:22:53.446110201 +0800
++++ docker-compose.yml_v01	2020-07-11 00:21:44.104108710 +0800
+@@ -3,7 +3,8 @@
+ 
+ services:
+   minecraft:
+-    image:  itzg/minecraft-server
++    image: minecraft_mike_v01
++    container_name: mc 
+     ports:
+       - "25565:25565"
+     volumes:

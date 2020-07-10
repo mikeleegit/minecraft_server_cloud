@@ -1,0 +1,41 @@
+#!/bin/bash
+
+. ${SCRIPTS:-/}start-utils
+
+: ${ENV_VARIABLE_PREFIX:=CFG_}
+
+if isTrue "${REPLACE_ENV_VARIABLES}"; then
+  log "Replacing env variables in configs that match the prefix $ENV_VARIABLE_PREFIX..."
+
+  findExcludes=
+  for f in ${REPLACE_ENV_VARIABLES_EXCLUDES}; do
+    findExcludes="${findExcludes} -not -name $f"
+  done
+  for p in ${REPLACE_ENV_VARIABLES_EXCLUDE_PATHS}; do
+    findExcludes="${findExcludes} -not -path \"*$p*\""
+  done
+  isDebugging && echo "Using find exclusion: $findExcludes"
+
+  while IFS='=' read -r name value ; do
+    # check if name of env variable matches the prefix
+    # sanity check environment variables to avoid code injections
+    if [[ "$name" = $ENV_VARIABLE_PREFIX* ]] \
+        && [[ $value =~ ^[0-9a-zA-Z_:/=?.+\-]*$ ]] \
+        && [[ $name =~ ^[0-9a-zA-Z_\-]*$ ]]; then
+      # Read content from file environment
+      if [[ $name = *"_FILE" ]] && [[ -f $value ]]; then
+        name="${name/_FILE/}"
+        value=$(<$value)
+      fi
+
+      log "Replacing $name with $value ..."
+      find /data/ -type f \
+          \( -name "*.yml" -or -name "*.yaml" -or -name "*.txt" -or -name "*.cfg" \
+          -or -name "*.conf" -or -name "*.properties" \) \
+          $findExcludes \
+          -exec sed -i 's#${'"$name"'}#'"$value"'#g' {} \;
+    fi
+  done < <(env)
+fi
+
+exec ${SCRIPTS:-/}start-minecraftFinalSetup $@
